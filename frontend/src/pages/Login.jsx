@@ -1,83 +1,174 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import toast, { Toaster } from "react-hot-toast";
+import axios from "axios";
+import { Eye, EyeOff, Phone, Lock, LogIn } from "lucide-react";
 
-const Login = ({ setIsLoggedIn }) => {
+const Login = ({ setIsLoggedIn, setUserRole }) => {
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ phone: "", password: "" });
-
-  const handleChange = (e) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
-    if (!formData.phone || !formData.password) {
-      toast.error("Phone and password are required.");
+    if (!phone || !password) {
+      setError("Please fill in all fields");
+      return;
+    }
+
+    if (!/^[0-9]{10}$/.test(phone)) {
+      setError("Please enter a valid 10-digit phone number");
       return;
     }
 
     try {
-      const res = await fetch(`http://localhost:8000/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+      setLoading(true);
+      const response = await axios.post("http://localhost:8000/login", {
+        phone,
+        password,
       });
 
-      const data = await res.json();
+      if (response.data.success) {
+        const { token, user } = response.data;
 
-      if (res.ok) {
-        toast.success("Logged in successfully!");
-        localStorage.setItem("token", data.token);
+        // Store in localStorage
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(user));
+        localStorage.setItem("userRole", user.role); // ✅ Store role correctly
+        localStorage.setItem("userId", user.id);
+
+        // Update App state
         setIsLoggedIn(true);
-        setTimeout(() => navigate("/"), 1500);
-      } else {
-        toast.error(data.message || "Login failed");
+        setUserRole(user.role);
+
+        // Navigate based on role
+        if (user.role === "admin") {
+          navigate("/admin/dashboard");
+        } else {
+          navigate("/");
+        }
       }
     } catch (err) {
-      console.error(err);
-      toast.error("Server error. Please try again later.");
+      console.error("Login error:", err);
+      setError(
+        err.response?.data?.message || "Login failed. Please try again."
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500">
-      <Toaster position="top-center" reverseOrder={false} />
-      <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md">
-        <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">Sign In</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="text"
-            name="phone"
-            placeholder="Phone"
-            value={formData.phone}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
-            required
-          />
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={formData.password}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
-            required
-          />
-          <button
-            type="submit"
-            className="w-full py-2 rounded-lg bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 text-white font-semibold hover:from-purple-600 hover:to-pink-600 transition duration-300"
-          >
-            Sign In
-          </button>
-        </form>
-        <p className="text-center text-gray-500 mt-4 text-sm">
-          Don't have an account?{" "}
-          <Link to="/signup" className="text-indigo-600 font-semibold hover:underline">
-            Sign Up
-          </Link>
-        </p>
+    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-black flex items-center justify-center px-4">
+      <div className="max-w-md w-full">
+        {/* Logo/Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">
+            Welcome Back
+          </h1>
+          <p className="text-gray-400">Sign in to your account</p>
+        </div>
+
+        {/* Login Form */}
+        <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-8 border border-purple-500/20">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Phone Input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Phone Number
+              </label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Enter 10-digit phone number"
+                  maxLength="10"
+                  className="w-full bg-slate-900/50 border border-purple-500/30 rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+                />
+              </div>
+            </div>
+
+            {/* Password Input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  className="w-full bg-slate-900/50 border border-purple-500/30 rounded-lg pl-10 pr-12 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm">
+                {error}
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  <LogIn className="w-5 h-5" />
+                  Sign In
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Sign Up Link */}
+          <div className="mt-6 text-center">
+            <p className="text-gray-400">
+              Don't have an account?{" "}
+              <Link
+                to="/signup"
+                className="text-purple-400 hover:text-purple-300 font-semibold transition-colors"
+              >
+                Sign Up
+              </Link>
+            </p>
+          </div>
+        </div>
+
+        {/* Admin Note */}
+        <div className="mt-6 text-center">
+          <p className="text-xs text-gray-500">
+            Admin users will be redirected to the dashboard
+          </p>
+        </div>
       </div>
     </div>
   );

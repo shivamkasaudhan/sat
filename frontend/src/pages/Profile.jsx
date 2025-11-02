@@ -14,6 +14,10 @@ import {
   Trash2,
   Loader,
   ShoppingCart,
+  Edit,
+  Save,
+  X,
+  Lock,
 } from "lucide-react";
 
 const Profile = () => {
@@ -23,6 +27,26 @@ const Profile = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState({});
+  const [editing, setEditing] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  
+  // Edit form state
+  const [editForm, setEditForm] = useState({
+    name: "",
+    phone: "",
+    addressLine1: "",
+    addressLine2: "",
+    pincode: "",
+  });
+
+  // Password form state
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
+  const [updateMessage, setUpdateMessage] = useState({ type: "", text: "" });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -50,7 +74,15 @@ const Profile = () => {
       });
       
       if (response.data.success) {
-        setUser(response.data.user);
+        const userData = response.data.user;
+        setUser(userData);
+        setEditForm({
+          name: userData.name,
+          phone: userData.phone,
+          addressLine1: userData.address?.firstLine || "",
+          addressLine2: userData.address?.secondLine || "",
+          pincode: userData.address?.pincode || "",
+        });
       }
     } catch (err) {
       console.error("Fetch user error:", err);
@@ -78,6 +110,85 @@ const Profile = () => {
       }
     } catch (err) {
       console.error("Fetch notifications error:", err);
+    }
+  };
+
+  const handleUpdateProfile = async () => {
+    try {
+      setUpdateMessage({ type: "", text: "" });
+      const token = localStorage.getItem("token");
+      
+      const response = await axios.patch(
+        "http://localhost:8000/api/auth/update-profile",
+        {
+          name: editForm.name,
+          phone: editForm.phone,
+          address: {
+            firstLine: editForm.addressLine1,
+            secondLine: editForm.addressLine2,
+            pincode: editForm.pincode,
+          }
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (response.data.success) {
+        setUpdateMessage({ type: "success", text: "Profile updated successfully!" });
+        setEditing(false);
+        fetchUserData();
+        
+        // Update localStorage user
+        localStorage.setItem("user", JSON.stringify(response.data.user));
+      }
+    } catch (err) {
+      console.error("Update profile error:", err);
+      setUpdateMessage({ 
+        type: "error", 
+        text: err.response?.data?.message || "Failed to update profile" 
+      });
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    try {
+      setUpdateMessage({ type: "", text: "" });
+
+      if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+        setUpdateMessage({ type: "error", text: "Passwords do not match" });
+        return;
+      }
+
+      if (passwordForm.newPassword.length < 6) {
+        setUpdateMessage({ type: "error", text: "Password must be at least 6 characters" });
+        return;
+      }
+
+      const token = localStorage.getItem("token");
+      
+      const response = await axios.patch(
+        "http://localhost:8000/api/auth/update-password",
+        {
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (response.data.success) {
+        setUpdateMessage({ type: "success", text: "Password updated successfully!" });
+        setChangingPassword(false);
+        setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      }
+    } catch (err) {
+      console.error("Update password error:", err);
+      setUpdateMessage({ 
+        type: "error", 
+        text: err.response?.data?.message || "Failed to update password" 
+      });
     }
   };
 
@@ -265,72 +376,236 @@ const Profile = () => {
             {activeTab === "profile" && user && (
               <div className="space-y-6">
                 
+                {/* Update Message */}
+                {updateMessage.text && (
+                  <div className={`p-4 rounded-xl border ${
+                    updateMessage.type === "success" 
+                      ? "bg-green-500/10 border-green-500/50 text-green-400"
+                      : "bg-red-500/10 border-red-500/50 text-red-400"
+                  }`}>
+                    {updateMessage.text}
+                  </div>
+                )}
+
                 {/* Profile Card */}
                 <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-purple-500/20">
-                  <div className="flex items-center gap-6 mb-6">
-                    <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-3xl font-bold">
-                      {user.name.charAt(0).toUpperCase()}
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-6">
+                      <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-3xl font-bold">
+                        {user.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <h2 className="text-2xl font-bold mb-1">{user.name}</h2>
+                        <p className="text-gray-400">{user.email}</p>
+                        <span className="inline-block mt-2 px-3 py-1 bg-purple-600/20 border border-purple-500/30 rounded-full text-sm text-purple-400 font-medium">
+                          {user.role === "admin" ? "👑 Admin" : "👤 Client"}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <h2 className="text-2xl font-bold mb-1">{user.name}</h2>
-                      <p className="text-gray-400">{user.email}</p>
-                      <span className="inline-block mt-2 px-3 py-1 bg-purple-600/20 border border-purple-500/30 rounded-full text-sm text-purple-400 font-medium">
-                        {user.role === "admin" ? "👑 Admin" : "👤 Client"}
-                      </span>
-                    </div>
+
+                    {!editing && (
+                      <button
+                        onClick={() => setEditing(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 rounded-lg transition-colors text-purple-400 font-medium"
+                      >
+                        <Edit className="w-4 h-4" />
+                        Edit Profile
+                      </button>
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-4 bg-slate-900/50 rounded-xl">
-                      <div className="flex items-start gap-3">
-                        <Mail className="w-5 h-5 text-purple-400 mt-0.5" />
-                        <div>
-                          <p className="text-xs text-gray-400 mb-1">Email</p>
-                          <p className="text-white font-medium">{user.email}</p>
-                        </div>
+                  {editing ? (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-2">Name</label>
+                        <input
+                          type="text"
+                          value={editForm.name}
+                          onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                          className="w-full bg-slate-900/50 border border-purple-500/30 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500"
+                        />
                       </div>
-                    </div>
 
-                    <div className="p-4 bg-slate-900/50 rounded-xl">
-                      <div className="flex items-start gap-3">
-                        <Phone className="w-5 h-5 text-pink-400 mt-0.5" />
-                        <div>
-                          <p className="text-xs text-gray-400 mb-1">Phone</p>
-                          <p className="text-white font-medium">
-                            {user.phone || "Not provided"}
-                          </p>
-                        </div>
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-2">Phone</label>
+                        <input
+                          type="tel"
+                          value={editForm.phone}
+                          onChange={(e) => setEditForm({...editForm, phone: e.target.value})}
+                          maxLength="10"
+                          className="w-full bg-slate-900/50 border border-purple-500/30 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500"
+                        />
                       </div>
-                    </div>
 
-                    <div className="p-4 bg-slate-900/50 rounded-xl md:col-span-2">
-                      <div className="flex items-start gap-3">
-                        <MapPin className="w-5 h-5 text-purple-400 mt-0.5" />
-                        <div>
-                          <p className="text-xs text-gray-400 mb-1">Address</p>
-                          <p className="text-white font-medium">
-                            {user.address || "Not provided"}
-                          </p>
-                        </div>
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-2">Address Line 1</label>
+                        <input
+                          type="text"
+                          value={editForm.addressLine1}
+                          onChange={(e) => setEditForm({...editForm, addressLine1: e.target.value})}
+                          className="w-full bg-slate-900/50 border border-purple-500/30 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500"
+                        />
                       </div>
-                    </div>
 
-                    <div className="p-4 bg-slate-900/50 rounded-xl md:col-span-2">
-                      <div className="flex items-start gap-3">
-                        <Calendar className="w-5 h-5 text-pink-400 mt-0.5" />
-                        <div>
-                          <p className="text-xs text-gray-400 mb-1">Member Since</p>
-                          <p className="text-white font-medium">
-                            {new Date(user.createdAt).toLocaleDateString("en-IN", {
-                              day: "numeric",
-                              month: "long",
-                              year: "numeric",
-                            })}
-                          </p>
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-2">Address Line 2</label>
+                        <input
+                          type="text"
+                          value={editForm.addressLine2}
+                          onChange={(e) => setEditForm({...editForm, addressLine2: e.target.value})}
+                          className="w-full bg-slate-900/50 border border-purple-500/30 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-2">Pincode</label>
+                        <input
+                          type="text"
+                          value={editForm.pincode}
+                          onChange={(e) => setEditForm({...editForm, pincode: e.target.value})}
+                          maxLength="6"
+                          className="w-full bg-slate-900/50 border border-purple-500/30 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500"
+                        />
+                      </div>
+
+                      <div className="flex gap-3">
+                        <button
+                          onClick={handleUpdateProfile}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-medium hover:from-pink-600 hover:to-purple-600 transition-all"
+                        >
+                          <Save className="w-4 h-4" />
+                          Save Changes
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditing(false);
+                            setEditForm({
+                              name: user.name,
+                              phone: user.phone,
+                              addressLine1: user.address?.firstLine || "",
+                              addressLine2: user.address?.secondLine || "",
+                              pincode: user.address?.pincode || "",
+                            });
+                          }}
+                          className="px-4 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg font-medium transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 bg-slate-900/50 rounded-xl">
+                        <div className="flex items-start gap-3">
+                          <Phone className="w-5 h-5 text-pink-400 mt-0.5" />
+                          <div>
+                            <p className="text-xs text-gray-400 mb-1">Phone</p>
+                            <p className="text-white font-medium">{user.phone}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-slate-900/50 rounded-xl md:col-span-2">
+                        <div className="flex items-start gap-3">
+                          <MapPin className="w-5 h-5 text-purple-400 mt-0.5" />
+                          <div>
+                            <p className="text-xs text-gray-400 mb-1">Address</p>
+                            <p className="text-white font-medium">
+                              {user.address?.firstLine 
+                                ? `${user.address.firstLine}${user.address.secondLine ? ', ' + user.address.secondLine : ''}, PIN: ${user.address.pincode}`
+                                : "Not provided"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-slate-900/50 rounded-xl md:col-span-2">
+                        <div className="flex items-start gap-3">
+                          <Calendar className="w-5 h-5 text-pink-400 mt-0.5" />
+                          <div>
+                            <p className="text-xs text-gray-400 mb-1">Member Since</p>
+                            <p className="text-white font-medium">
+                              {new Date(user.createdAt).toLocaleDateString("en-IN", {
+                                day: "numeric",
+                                month: "long",
+                                year: "numeric",
+                              })}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
+                  )}
+                </div>
+
+                {/* Change Password Section */}
+                <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-purple-500/20">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-semibold flex items-center gap-2">
+                      <Lock className="w-5 h-5 text-purple-400" />
+                      Change Password
+                    </h3>
+                    {!changingPassword && (
+                      <button
+                        onClick={() => setChangingPassword(true)}
+                        className="px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 rounded-lg transition-colors text-purple-400 font-medium text-sm"
+                      >
+                        Change Password
+                      </button>
+                    )}
                   </div>
+
+                  {changingPassword && (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-2">Current Password</label>
+                        <input
+                          type="password"
+                          value={passwordForm.currentPassword}
+                          onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
+                          className="w-full bg-slate-900/50 border border-purple-500/30 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-2">New Password</label>
+                        <input
+                          type="password"
+                          value={passwordForm.newPassword}
+                          onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                          className="w-full bg-slate-900/50 border border-purple-500/30 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-2">Confirm New Password</label>
+                        <input
+                          type="password"
+                          value={passwordForm.confirmPassword}
+                          onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
+                          className="w-full bg-slate-900/50 border border-purple-500/30 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500"
+                        />
+                      </div>
+
+                      <div className="flex gap-3">
+                        <button
+                          onClick={handleUpdatePassword}
+                          className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-medium hover:from-pink-600 hover:to-purple-600 transition-all"
+                        >
+                          Update Password
+                        </button>
+                        <button
+                          onClick={() => {
+                            setChangingPassword(false);
+                            setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+                          }}
+                          className="px-4 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg font-medium transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -363,7 +638,7 @@ const Profile = () => {
                       return (
                         <div
                           key={notification._id}
-                          className={`p-4 rounded-xl border transition-all ${
+                          className={`p-4 rounded-xl border transition-all cursor-pointer ${
                             notification.isRead
                               ? "bg-slate-900/30 border-purple-500/10"
                               : "bg-slate-900/50 border-purple-500/30"

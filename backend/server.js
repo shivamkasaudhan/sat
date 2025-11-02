@@ -27,6 +27,56 @@ app.get("/", (req, res) => {
 });
 
 // ============================================
+// AUTH MIDDLEWARE
+// ============================================
+const protect = async (req, res, next) => {
+  try {
+    let token;
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+      token = req.headers.authorization.split(' ')[1];
+    }
+
+    if (!token) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Not authorized to access this route' 
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = await User.findById(decoded.id).select('-password');
+
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+
+    next();
+  } catch (error) {
+    return res.status(401).json({ 
+      success: false, 
+      message: 'Not authorized, token failed' 
+    });
+  }
+};
+
+const protectAdmin = (req, res, next) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return res.status(401).json({ message: "Not authorized" });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.role !== "admin") return res.status(403).json({ message: "Admin access only" });
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid token" });
+  }
+};
+
+// ============================================
 // AUTH ROUTES
 // ============================================
 
@@ -35,21 +85,17 @@ app.post("/signup", async (req, res) => {
   try {
     const { name, phone, password, address } = req.body;
 
-    // Basic validation
     if (!name || !phone || !password || !address || !address.firstLine || !address.pincode) {
       return res.status(400).json({ message: "All required fields must be filled" });
     }
 
-    // Check if user already exists
     const existingUser = await User.findOne({ phone });
     if (existingUser) {
       return res.status(400).json({ message: "User with this phone number already exists" });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create new user
     const user = await User.create({
       name,
       phone,
@@ -57,7 +103,6 @@ app.post("/signup", async (req, res) => {
       address,
     });
 
-    // Generate token
     const token = jwt.sign(
       { id: user._id, role: user.role, name: user.name, phone: user.phone },
       process.env.JWT_SECRET,
@@ -73,6 +118,7 @@ app.post("/signup", async (req, res) => {
         name: user.name,
         phone: user.phone,
         role: user.role,
+        address: user.address,
       },
     });
   } catch (error) {
@@ -86,20 +132,16 @@ app.post("/login", async (req, res) => {
   try {
     const { phone, password } = req.body;
 
-    // Validate input
     if (!phone || !password) {
       return res.status(400).json({ message: "Phone and password are required" });
     }
 
-    // Find user by phone
     const user = await User.findOne({ phone });
     if (!user) return res.status(400).json({ message: "Invalid phone or password" });
 
-    // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: "Invalid phone or password" });
 
-    // Generate JWT token
     const token = jwt.sign(
       {
         id: user._id,
@@ -111,7 +153,6 @@ app.post("/login", async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    // Send response
     res.status(200).json({
       success: true,
       message: "Login successful",
@@ -121,6 +162,7 @@ app.post("/login", async (req, res) => {
         name: user.name,
         phone: user.phone,
         role: user.role,
+        address: user.address,
       },
     });
   } catch (err) {
@@ -129,20 +171,141 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// Middleware to protect routes and check admin
-const protectAdmin = (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
-  if (!token) return res.status(401).json({ message: "Not authorized" });
-
+// ✅ NEW: Get current user route
+app.get("/api/auth/me", protect, async (req, res) => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (decoded.role !== "admin") return res.status(403).json({ message: "Admin access only" });
-    req.user = decoded;
-    next();
-  } catch (err) {
-    return res.status(401).json({ message: "Invalid token" });
+    const user = await User.findById(req.user._id).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        phone: user.phone,
+        email: user.email || user.phone + "@sat.com", // Fallback email
+        role: user.role,
+        address: user.address,
+        createdAt: user.createdAt,
+      }
+    });
+  } catch (error) {
+    console.error("Get user error:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Server error" 
+    });
   }
-};
+});
+
+// ✅ NEW: Update user profile
+app.patch("/api/auth/update-profile", protect, async (req, res) => {
+  try {
+    const { name, phone, address } = req.body;
+    
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+
+    // Update fields
+    if (name) user.name = name;
+    if (phone) {
+      // Check if phone is already taken by another user
+      const existingUser = await User.findOne({ phone, _id: { $ne: user._id } });
+      if (existingUser) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Phone number already in use' 
+        });
+      }
+      user.phone = phone;
+    }
+    if (address) user.address = address;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: {
+        id: user._id,
+        name: user.name,
+        phone: user.phone,
+        role: user.role,
+        address: user.address,
+      }
+    });
+  } catch (error) {
+    console.error("Update profile error:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to update profile" 
+    });
+  }
+});
+
+// ✅ NEW: Update password
+app.patch("/api/auth/update-password", protect, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Please provide current and new password' 
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'New password must be at least 6 characters' 
+      });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+
+    // Check current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Current password is incorrect' 
+      });
+    }
+
+    // Hash new password
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Password updated successfully'
+    });
+  } catch (error) {
+    console.error("Update password error:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to update password" 
+    });
+  }
+});
 
 // Admin signup route
 app.post("/admin/signup", protectAdmin, async (req, res) => {
@@ -182,14 +345,12 @@ app.post("/admin/signup", protectAdmin, async (req, res) => {
 // ============================================
 app.use('/api/category', CategoryRoutes);
 app.use("/api/product", ProductRoutes);
-app.use("/api/orders", OrderRoutes);
-app.use("/api/notifications", NotificationRoutes);
+app.use("/api/order", OrderRoutes);
+app.use("/api/notification", NotificationRoutes); // ✅ CHANGED FROM /api/notifications to /api/notification
 
 // ============================================
 // ERROR HANDLING
 // ============================================
-
-// Error handling middleware
 app.use((err, req, res, next) => {
   console.error("Error:", err.stack);
   res.status(500).json({ 
@@ -199,7 +360,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Handle undefined routes
 app.use((req, res) => {
   res.status(404).json({ 
     success: false, 

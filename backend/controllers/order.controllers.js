@@ -1,3 +1,4 @@
+// controllers/order.controllers.js - UPDATED WITHOUT TAX
 import Order from '../models/order.js';
 import Notification from '../models/notification.js';
 import Product from '../models/Product.js';
@@ -32,7 +33,7 @@ export const createOrder = async (req, res) => {
     }
 
     // Calculate totals and validate products
-    let subtotal = 0;
+    let totalAmount = 0;
     const validatedItems = [];
 
     for (const item of orderItems) {
@@ -45,27 +46,49 @@ export const createOrder = async (req, res) => {
         });
       }
 
-      const itemTotal = product.price * item.quantity;
-      subtotal += itemTotal;
+      // Parse quantity value
+      const quantityValue = parseFloat(item.quantityValue);
+      
+      if (isNaN(quantityValue) || quantityValue <= 0) {
+        return res.status(400).json({ 
+          success: false,
+          message: `Invalid quantity for ${product.name}` 
+        });
+      }
+
+      // Calculate price based on unit
+      let itemPrice;
+      if (item.unit === 'kg') {
+        itemPrice = product.pricePerUnit * quantityValue;
+      } else if (item.unit === 'gram') {
+        itemPrice = (product.pricePerUnit / 1000) * quantityValue;
+      } else if (item.unit === 'piece') {
+        itemPrice = product.pricePerUnit * quantityValue;
+      } else {
+        return res.status(400).json({ 
+          success: false,
+          message: `Invalid unit type: ${item.unit}` 
+        });
+      }
+
+      totalAmount += itemPrice;
 
       validatedItems.push({
         product: product._id,
         productName: product.name,
-        quantity: item.quantity,
-        price: product.price,
-        totalPrice: itemTotal,
+        quantityText: item.quantityText,
+        quantityValue: quantityValue,
+        unit: item.unit,
+        price: product.pricePerUnit,
+        totalPrice: itemPrice,
         image: product.image
       });
     }
 
-    // Calculate tax (10%)
-    const tax = subtotal * 0.10;
-    const totalAmount = subtotal + tax;
-
     // Get user details
     const user = await User.findById(req.user.id);
 
-    // Create order
+    // Create order (NO TAX CALCULATION)
     const order = await Order.create({
       user: req.user.id,
       orderItems: validatedItems,
@@ -75,9 +98,8 @@ export const createOrder = async (req, res) => {
       contactPhone: user.phone,
       contactName: user.name,
       deliveryAddress: deliveryAddress || user.address,
-      subtotal,
-      tax,
-      totalAmount,
+      subtotal: totalAmount,
+      totalAmount: totalAmount, // No tax added
       status: 'pending'
     });
 

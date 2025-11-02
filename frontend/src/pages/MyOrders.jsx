@@ -105,6 +105,19 @@ const MyOrders = () => {
     return timeString;
   };
 
+  // Format address object to string
+  const formatAddress = (address) => {
+    if (typeof address === 'string') return address;
+    if (!address) return 'N/A';
+    
+    const parts = [];
+    if (address.firstLine) parts.push(address.firstLine);
+    if (address.secondLine) parts.push(address.secondLine);
+    if (address.pincode) parts.push(`PIN: ${address.pincode}`);
+    
+    return parts.join(', ') || 'N/A';
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-900 to-black flex items-center justify-center">
@@ -231,7 +244,7 @@ const MyOrders = () => {
                         <div>
                           <p className="text-xs text-gray-400 mb-1">Pickup Address</p>
                           <p className="text-white font-medium line-clamp-2">
-                            {order.deliveryAddress}
+                            {formatAddress(order.deliveryAddress)}
                           </p>
                         </div>
                       </div>

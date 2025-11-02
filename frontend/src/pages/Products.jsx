@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Search, ShoppingCart, Plus, Minus, Trash2, Eye } from "lucide-react";
+import { Search, ShoppingCart, Eye, Check } from "lucide-react";
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -69,30 +69,41 @@ const Products = () => {
     setProducts(filtered);
   };
 
+  // ✅ NEW: Simple add to cart - just add product, quantity handled in cart page
   const handleAddToCart = (product) => {
-    const newCart = { ...cart, [product._id]: { ...product, quantity: 1 } };
+    const newCart = { 
+      ...cart, 
+      [product._id]: { 
+        ...product, 
+        quantityText: "", // Will be filled in cart page
+        addedAt: Date.now() 
+      } 
+    };
     setCart(newCart);
     saveCartToStorage(newCart);
   };
 
-  const handleQuantityChange = (productId, change) => {
+  const removeFromCart = (productId) => {
     const newCart = { ...cart };
-    if (newCart[productId]) {
-      newCart[productId].quantity += change;
-      if (newCart[productId].quantity <= 0) {
-        delete newCart[productId];
-      }
-    }
+    delete newCart[productId];
     setCart(newCart);
     saveCartToStorage(newCart);
   };
 
   const getTotalItems = () => {
-    return Object.values(cart).reduce((sum, item) => sum + item.quantity, 0);
+    return Object.keys(cart).length;
   };
 
   const viewProductDetails = (productId) => {
     navigate(`/product/${productId}`);
+  };
+
+  const getUnitDisplay = (product) => {
+    if (product.unitType === 'weight') {
+      return `₹${product.pricePerUnit}/kg`;
+    } else {
+      return `₹${product.pricePerUnit}/piece`;
+    }
   };
 
   if (loading) {
@@ -211,6 +222,15 @@ const Products = () => {
                       {product.category.name}
                     </div>
                   )}
+
+                  {/* Stock Status */}
+                  {!product.inStock && (
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                      <span className="px-4 py-2 bg-red-600 rounded-lg font-semibold">
+                        Out of Stock
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Product Info */}
@@ -221,45 +241,39 @@ const Products = () => {
                   <p className="text-sm text-gray-400 mb-3 line-clamp-2">
                     {product.description}
                   </p>
-                  <p className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-4">
-                    ₹{product.price}
-                  </p>
+                  
+                  {/* Price Display */}
+                  <div className="mb-4">
+                    <p className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                      {getUnitDisplay(product)}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {product.unitType === 'weight' ? 'Price per kilogram' : 'Price per piece'}
+                    </p>
+                  </div>
 
-                  {/* Cart Actions */}
+                  {/* Add to Cart Button */}
                   {cart[product._id] ? (
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2 bg-slate-900/50 rounded-lg p-1">
-                        <button
-                          onClick={() => handleQuantityChange(product._id, -1)}
-                          className="p-2 hover:bg-red-600/20 rounded-lg transition-colors text-red-400"
-                        >
-                          {cart[product._id].quantity === 1 ? (
-                            <Trash2 className="w-4 h-4" />
-                          ) : (
-                            <Minus className="w-4 h-4" />
-                          )}
-                        </button>
-                        <span className="px-4 font-semibold">
-                          {cart[product._id].quantity}
-                        </span>
-                        <button
-                          onClick={() => handleQuantityChange(product._id, 1)}
-                          className="p-2 hover:bg-green-600/20 rounded-lg transition-colors text-green-400"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                      </div>
+                    <div className="flex gap-2">
                       <button
                         onClick={() => navigate("/cart")}
-                        className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-medium hover:from-pink-600 hover:to-purple-600 transition-all text-sm"
+                        className="flex-1 py-3 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg font-semibold hover:from-emerald-600 hover:to-green-600 transition-all duration-300 flex items-center justify-center gap-2"
                       >
-                        View Cart
+                        <Check className="w-5 h-5" />
+                        In Cart
+                      </button>
+                      <button
+                        onClick={() => removeFromCart(product._id)}
+                        className="px-4 py-3 bg-red-600/20 hover:bg-red-600/30 rounded-lg transition-colors text-red-400"
+                      >
+                        Remove
                       </button>
                     </div>
                   ) : (
                     <button
                       onClick={() => handleAddToCart(product)}
-                      className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-600 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-purple-500/50"
+                      disabled={!product.inStock}
+                      className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-600 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <ShoppingCart className="w-5 h-5" />
                       Add to Cart

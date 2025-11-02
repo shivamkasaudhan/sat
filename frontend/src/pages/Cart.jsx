@@ -3,35 +3,79 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   ShoppingCart,
-  Plus,
-  Minus,
   Trash2,
   ArrowLeft,
   Calendar,
   Clock,
   AlertCircle,
   CheckCircle,
+  MapPin,
+  Info,
 } from "lucide-react";
 
 const Cart = () => {
   const [cart, setCart] = useState({});
+  const [quantities, setQuantities] = useState({});
+  const [units, setUnits] = useState({});
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledTime, setScheduledTime] = useState("");
   const [specialInstructions, setSpecialInstructions] = useState("");
-  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [deliveryAddress, setDeliveryAddress] = useState({
+    firstLine: "",
+    secondLine: "",
+    pincode: ""
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
+    checkAuth();
     loadCart();
   }, []);
+
+  const checkAuth = async () => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      setIsLoggedIn(true);
+      await loadUserAddress();
+    } else {
+      setIsLoggedIn(false);
+    }
+  };
+
+  const loadUserAddress = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get("http://localhost:8000/api/auth/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.data.success && response.data.user.address) {
+        setDeliveryAddress(response.data.user.address);
+      }
+    } catch (err) {
+      console.error("Load address error:", err);
+    }
+  };
 
   const loadCart = () => {
     const savedCart = localStorage.getItem("cart");
     if (savedCart) {
-      setCart(JSON.parse(savedCart));
+      const parsedCart = JSON.parse(savedCart);
+      setCart(parsedCart);
+      
+      const initialQuantities = {};
+      const initialUnits = {};
+      Object.keys(parsedCart).forEach(productId => {
+        const product = parsedCart[productId];
+        initialQuantities[productId] = "";
+        initialUnits[productId] = product.unitType === 'weight' ? 'kg' : 'piece';
+      });
+      setQuantities(initialQuantities);
+      setUnits(initialUnits);
     }
   };
 
@@ -40,56 +84,95 @@ const Cart = () => {
     setCart(newCart);
   };
 
-  const updateQuantity = (productId, change) => {
-    const newCart = { ...cart };
-    if (newCart[productId]) {
-      newCart[productId].quantity += change;
-      if (newCart[productId].quantity <= 0) {
-        delete newCart[productId];
-      }
-      saveCart(newCart);
-    }
-  };
-
   const removeItem = (productId) => {
     const newCart = { ...cart };
+    const newQuantities = { ...quantities };
+    const newUnits = { ...units };
+    
     delete newCart[productId];
+    delete newQuantities[productId];
+    delete newUnits[productId];
+    
     saveCart(newCart);
+    setQuantities(newQuantities);
+    setUnits(newUnits);
   };
 
   const clearCart = () => {
     localStorage.removeItem("cart");
     setCart({});
+    setQuantities({});
+    setUnits({});
   };
 
-  const calculateSubtotal = () => {
-    return Object.values(cart).reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0
-    );
+  const updateQuantity = (productId, value) => {
+    setQuantities({
+      ...quantities,
+      [productId]: value
+    });
   };
 
-  const calculateTax = () => {
-    return calculateSubtotal() * 0.1; // 10% tax
+  const updateUnit = (productId, unit) => {
+    setUnits({
+      ...units,
+      [productId]: unit
+    });
+  };
+
+  const calculateItemPrice = (product, quantityText, unit) => {
+    if (!quantityText || quantityText.trim() === "") return 0;
+    
+    const quantity = parseFloat(quantityText);
+    if (isNaN(quantity) || quantity <= 0) return 0;
+
+    if (product.unitType === 'weight') {
+      const quantityInKg = unit === 'gram' ? quantity / 1000 : quantity;
+      return product.pricePerUnit * quantityInKg;
+    } else {
+      return product.pricePerUnit * quantity;
+    }
   };
 
   const calculateTotal = () => {
-    return calculateSubtotal() + calculateTax();
+    return Object.keys(cart).reduce((sum, productId) => {
+      const product = cart[productId];
+      const quantity = quantities[productId];
+      const unit = units[productId];
+      return sum + calculateItemPrice(product, quantity, unit);
+    }, 0);
   };
 
-  const getMinDateTime = () => {
-    const now = new Date();
-    now.setHours(now.getHours() + 2); // Minimum 2 hours from now
-    return now.toISOString().slice(0, 16);
+  const getTodayDate = () => {
+    return new Date().toISOString().split("T")[0];
   };
 
   const handleScheduleOrder = async () => {
     setError("");
+
+    if (!isLoggedIn) {
+      // Save cart and redirect to login
+      localStorage.setItem("cart", JSON.stringify(cart));
+      localStorage.setItem("redirectAfterLogin", "/cart");
+      navigate("/login");
+      return;
+    }
     
-    // Validation
     if (Object.keys(cart).length === 0) {
       setError("Your cart is empty");
       return;
+    }
+
+    // Validate all quantities
+    for (let productId in cart) {
+      if (!quantities[productId] || quantities[productId].trim() === "") {
+        setError("Please enter quantity for all items");
+        return;
+      }
+      const qty = parseFloat(quantities[productId]);
+      if (isNaN(qty) || qty <= 0) {
+        setError("Please enter valid quantities (numbers greater than 0)");
+        return;
+      }
     }
 
     if (!scheduledDate || !scheduledTime) {
@@ -100,23 +183,33 @@ const Cart = () => {
     const scheduledDateTime = new Date(`${scheduledDate}T${scheduledTime}`);
     const now = new Date();
     
-    if (scheduledDateTime <= now) {
-      setError("Pickup time must be in the future");
+    if (scheduledDateTime < now) {
+      setError("Pickup time cannot be in the past");
       return;
     }
 
-    if (!deliveryAddress.trim()) {
-      setError("Please enter your pickup address");
+    if (!deliveryAddress.firstLine.trim() || !deliveryAddress.pincode.trim()) {
+      setError("Please enter your pickup address with pincode");
       return;
     }
 
     try {
       setLoading(true);
 
-      const orderItems = Object.values(cart).map((item) => ({
-        product: item._id,
-        quantity: item.quantity,
-      }));
+      const orderItems = Object.keys(cart).map((productId) => {
+        const product = cart[productId];
+        const quantityValue = parseFloat(quantities[productId]);
+        const unit = units[productId];
+        
+        const quantityText = `${quantityValue} ${unit}${unit === 'piece' && quantityValue > 1 ? 's' : ''}`;
+        
+        return {
+          product: productId,
+          quantityText: quantityText,
+          quantityValue: quantityValue,
+          unit: unit
+        };
+      });
 
       const token = localStorage.getItem("token");
       
@@ -127,7 +220,7 @@ const Cart = () => {
           scheduledDate,
           scheduledTime,
           specialInstructions,
-          deliveryAddress,
+          deliveryAddress: deliveryAddress,
         },
         {
           headers: {
@@ -139,8 +232,8 @@ const Cart = () => {
       if (response.data.success) {
         setSuccess(true);
         clearCart();
+        localStorage.removeItem("redirectAfterLogin");
         
-        // Redirect to orders page after 2 seconds
         setTimeout(() => {
           navigate("/my-orders");
         }, 2000);
@@ -224,11 +317,14 @@ const Cart = () => {
                     />
                     
                     <div className="flex-1">
-                      <div className="flex justify-between items-start mb-2">
+                      <div className="flex justify-between items-start mb-3">
                         <div>
                           <h3 className="font-semibold text-lg">{item.name}</h3>
                           <p className="text-sm text-gray-400">
                             {item.category?.name}
+                          </p>
+                          <p className="text-sm text-purple-400 mt-1">
+                            ₹{item.pricePerUnit}/{item.unitType === 'weight' ? 'kg' : 'piece'}
                           </p>
                         </div>
                         <button
@@ -239,31 +335,44 @@ const Cart = () => {
                         </button>
                       </div>
 
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2 bg-slate-900/50 rounded-lg p-1">
-                          <button
-                            onClick={() => updateQuantity(item._id, -1)}
-                            className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
-                          >
-                            <Minus className="w-4 h-4" />
-                          </button>
-                          <span className="px-4 font-semibold">
-                            {item.quantity}
-                          </span>
-                          <button
-                            onClick={() => updateQuantity(item._id, 1)}
-                            className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
+                      {/* Quantity Input */}
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1">
+                          <label className="block text-xs text-gray-400 mb-1">Quantity</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="number"
+                              step={item.unitType === 'weight' ? '0.1' : '1'}
+                              min="0"
+                              value={quantities[item._id] || ""}
+                              onChange={(e) => updateQuantity(item._id, e.target.value)}
+                              placeholder={item.unitType === 'weight' ? "e.g., 2.5" : "e.g., 5"}
+                              className="flex-1 bg-slate-900/50 border border-purple-500/30 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500"
+                            />
+                            
+                            {item.unitType === 'weight' && (
+                              <select
+                                value={units[item._id] || 'kg'}
+                                onChange={(e) => updateUnit(item._id, e.target.value)}
+                                className="bg-slate-900/50 border border-purple-500/30 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500"
+                              >
+                                <option value="kg">kg</option>
+                                <option value="gram">gram</option>
+                              </select>
+                            )}
+                            
+                            {item.unitType === 'piece' && (
+                              <div className="px-4 py-2 bg-slate-900/50 border border-purple-500/30 rounded-lg text-gray-400">
+                                piece{quantities[item._id] && parseFloat(quantities[item._id]) > 1 ? 's' : ''}
+                              </div>
+                            )}
+                          </div>
                         </div>
 
                         <div className="text-right">
-                          <p className="text-sm text-gray-400">
-                            ₹{item.price} × {item.quantity}
-                          </p>
+                          <p className="text-xs text-gray-400 mb-1">Total</p>
                           <p className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                            ₹{(item.price * item.quantity).toFixed(2)}
+                            ₹{calculateItemPrice(item, quantities[item._id], units[item._id]).toFixed(2)}
                           </p>
                         </div>
                       </div>
@@ -286,20 +395,20 @@ const Cart = () => {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm text-gray-400 mb-2">
-                      Pickup Date
+                      Pickup Date *
                     </label>
                     <input
                       type="date"
                       value={scheduledDate}
                       onChange={(e) => setScheduledDate(e.target.value)}
-                      min={new Date().toISOString().split("T")[0]}
+                      min={getTodayDate()}
                       className="w-full bg-slate-900/50 border border-purple-500/30 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm text-gray-400 mb-2">
-                      Pickup Time (IST)
+                      Pickup Time (IST) *
                     </label>
                     <input
                       type="time"
@@ -309,18 +418,29 @@ const Cart = () => {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-2">
-                      Pickup Address
-                    </label>
-                    <textarea
-                      value={deliveryAddress}
-                      onChange={(e) => setDeliveryAddress(e.target.value)}
-                      placeholder="Enter your pickup address..."
-                      rows="3"
-                      className="w-full bg-slate-900/50 border border-purple-500/30 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 resize-none"
-                    />
-                  </div>
+                  {/* Auto-filled Address for Logged-in Users */}
+                  {isLoggedIn && deliveryAddress.firstLine && (
+                    <div className="p-4 bg-green-600/10 border border-green-500/30 rounded-lg">
+                      <div className="flex items-start gap-2 mb-2">
+                        <MapPin className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-green-300 mb-1">Your Saved Address</p>
+                          <p className="text-xs text-gray-400">
+                            {deliveryAddress.firstLine}
+                            {deliveryAddress.secondLine && `, ${deliveryAddress.secondLine}`}
+                            <br />
+                            PIN: {deliveryAddress.pincode}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2 mt-2 pt-2 border-t border-green-500/20">
+                        <Info className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
+                        <p className="text-xs text-gray-400">
+                          Using your profile address. Update in Profile settings if needed.
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-sm text-gray-400 mb-2">
@@ -337,20 +457,12 @@ const Cart = () => {
                 </div>
               </div>
 
-              {/* Price Summary */}
+              {/* Price Summary - NO TAX */}
               <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-purple-500/20">
                 <h3 className="text-xl font-semibold mb-4">Order Summary</h3>
                 
                 <div className="space-y-3 mb-4">
-                  <div className="flex justify-between text-gray-400">
-                    <span>Subtotal</span>
-                    <span>₹{calculateSubtotal().toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-gray-400">
-                    <span>Tax (10%)</span>
-                    <span>₹{calculateTax().toFixed(2)}</span>
-                  </div>
-                  <div className="border-t border-purple-500/20 pt-3 flex justify-between text-xl font-bold">
+                  <div className="border-t border-purple-500/20 pt-3 flex justify-between text-2xl font-bold">
                     <span>Total</span>
                     <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                       ₹{calculateTotal().toFixed(2)}
@@ -370,8 +482,14 @@ const Cart = () => {
                   disabled={loading}
                   className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-bold text-lg hover:from-pink-600 hover:to-purple-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-purple-500/50"
                 >
-                  {loading ? "Scheduling..." : "Schedule Order"}
+                  {loading ? "Scheduling..." : isLoggedIn ? "Schedule Order" : "Login to Schedule"}
                 </button>
+
+                {!isLoggedIn && (
+                  <p className="text-xs text-center text-gray-400 mt-3">
+                    Please login to schedule your order. Your cart will be saved.
+                  </p>
+                )}
               </div>
             </div>
           </div>

@@ -17,11 +17,14 @@ import AdminDashboard from "./pages/AdminDashboard";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState("client");
+  const [userRole, setUserRole] = useState("user");
 
   useEffect(() => {
+    checkAuthStatus();
+  }, []);
+
+  const checkAuthStatus = () => {
     const token = localStorage.getItem("token");
-    const role = localStorage.getItem("userRole");
     
     if (token) {
       try {
@@ -29,26 +32,37 @@ function App() {
         const now = Date.now() / 1000; // in seconds
         
         if (decoded.exp > now) {
+          // Token is valid
           setIsLoggedIn(true);
-          setUserRole(role || "client");
+          
+          // Get role from multiple sources (fallback chain)
+          const role = decoded.role || localStorage.getItem("userRole") || "user";
+          setUserRole(role);
+          
+          console.log("✅ Auth Status:", { isLoggedIn: true, role }); // Debug log
         } else {
           // Token expired
+          console.log("❌ Token expired");
           handleLogout();
         }
       } catch (err) {
         // Invalid token
+        console.error("❌ Invalid token:", err);
         handleLogout();
       }
+    } else {
+      console.log("❌ No token found");
     }
-  }, []);
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     localStorage.removeItem("userRole");
     localStorage.removeItem("userId");
+    localStorage.removeItem("cart"); // Also clear cart on logout
     setIsLoggedIn(false);
-    setUserRole("client");
+    setUserRole("user");
   };
 
   // Protected Route Component
@@ -57,6 +71,7 @@ function App() {
       return <Navigate to="/login" replace />;
     }
     if (adminOnly && userRole !== "admin") {
+      console.log("⚠️ Access denied. Role:", userRole);
       return <Navigate to="/" replace />;
     }
     return children;
@@ -184,9 +199,7 @@ function App() {
           path="/admin/dashboard"
           element={
             <ProtectedRoute adminOnly={true}>
-              <Layout>
-                <AdminDashboard />
-              </Layout>
+              <AdminDashboard />
             </ProtectedRoute>
           }
         />

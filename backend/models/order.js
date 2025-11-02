@@ -1,4 +1,5 @@
-import mongoose from 'mongoose';
+// models/Order.js - UPDATED WITHOUT TAX
+import mongoose from "mongoose";
 
 const orderItemSchema = new mongoose.Schema({
   product: {
@@ -10,10 +11,17 @@ const orderItemSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  quantity: {
+  quantityText: {
+    type: String,
+    required: true
+  },
+  quantityValue: {
     type: Number,
-    required: true,
-    min: 1
+    required: true
+  },
+  unit: {
+    type: String,
+    required: true
   },
   price: {
     type: Number,
@@ -22,6 +30,9 @@ const orderItemSchema = new mongoose.Schema({
   totalPrice: {
     type: Number,
     required: true
+  },
+  image: {
+    type: String
   }
 });
 
@@ -33,7 +44,6 @@ const orderSchema = new mongoose.Schema({
   },
   orderItems: [orderItemSchema],
   
-  // Scheduling Details
   scheduledDate: {
     type: Date,
     required: true
@@ -43,44 +53,41 @@ const orderSchema = new mongoose.Schema({
     required: true
   },
   
-  // Order Status
   status: {
     type: String,
     enum: ['pending', 'confirmed', 'preparing', 'ready', 'completed', 'cancelled'],
     default: 'pending'
   },
   
-  // Pricing
   subtotal: {
     type: Number,
     required: true
-  },
-  tax: {
-    type: Number,
-    default: 0
   },
   totalAmount: {
     type: Number,
     required: true
   },
   
-  // Additional Info
   specialInstructions: {
     type: String,
     maxlength: 500
   },
   
-  // Contact Info
   contactPhone: {
     type: String,
     required: true
   },
-  contactEmail: {
+  contactName: {
     type: String,
     required: true
   },
   
-  // Notifications
+  deliveryAddress: {
+    firstLine: { type: String, required: true },
+    secondLine: { type: String },
+    pincode: { type: String, required: true }
+  },
+  
   adminNotified: {
     type: Boolean,
     default: false
@@ -90,7 +97,6 @@ const orderSchema = new mongoose.Schema({
     default: false
   },
   
-  // Timestamps for status changes
   confirmedAt: Date,
   readyAt: Date,
   completedAt: Date,
@@ -99,19 +105,16 @@ const orderSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Indexes for better query performance
 orderSchema.index({ user: 1, createdAt: -1 });
 orderSchema.index({ status: 1, scheduledDate: 1 });
 
-// Virtual for order number
 orderSchema.virtual('orderNumber').get(function() {
   return `ORD-${this._id.toString().slice(-8).toUpperCase()}`;
 });
 
-// Ensure virtuals are included in JSON
 orderSchema.set('toJSON', { virtuals: true });
 orderSchema.set('toObject', { virtuals: true });
 
-const Order = mongoose.models.Order || mongoose.model('Order', orderSchema);
+const Order = mongoose.model('Order', orderSchema);
 
 export default Order;
