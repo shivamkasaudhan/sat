@@ -41,7 +41,7 @@ const OrderDetails = () => {
       const token = localStorage.getItem("token");
       
       const response = await axios.get(
-        `http://localhost:8000/api/order/${id}`,
+        `https://sat-t2tn.onrender.com/api/order/${id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -67,7 +67,7 @@ const OrderDetails = () => {
       const token = localStorage.getItem("token");
       
       const response = await axios.patch(
-        `http://localhost:8000/api/order/${id}/cancel`,
+        `https://sat-t2tn.onrender.com/api/order/${id}/cancel`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -89,7 +89,7 @@ const OrderDetails = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.patch(
-        `http://localhost:8000/api/order/${id}/status`,
+        `https://sat-t2tn.onrender.com/api/order/${id}/status`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );

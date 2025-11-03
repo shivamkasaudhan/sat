@@ -27,7 +27,7 @@ const Login = ({ setIsLoggedIn, setUserRole }) => {
 
     try {
       setLoading(true);
-      const response = await axios.post("http://localhost:8000/login", {
+      const response = await axios.post("https://sat-t2tn.onrender.com/login", {
         phone,
         password,
       });

@@ -58,7 +58,7 @@ const SignUp = () => {
 
     try {
       setLoading(true);
-      const response = await axios.post("http://localhost:8000/signup", {
+      const response = await axios.post("https://sat-t2tn.onrender.com/signup", {
         name: formData.name,
         phone: formData.phone,
         password: formData.password,

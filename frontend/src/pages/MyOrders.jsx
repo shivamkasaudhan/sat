@@ -28,8 +28,8 @@ const MyOrders = () => {
       const token = localStorage.getItem("token");
       
       const url = filter === "all" 
-        ? "http://localhost:8000/api/order/my-orders"
-        : `http://localhost:8000/api/order/my-orders?status=${filter}`;
+        ? "https://sat-t2tn.onrender.com/api/order/my-orders"
+        : `https://sat-t2tn.onrender.com/api/order/my-orders?status=${filter}`;
 
       const response = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },

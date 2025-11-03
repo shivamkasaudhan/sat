@@ -69,7 +69,7 @@ const Profile = () => {
   const fetchUserData = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:8000/api/auth/me", {
+      const response = await axios.get("https://sat-t2tn.onrender.com/api/auth/me", {
         headers: { Authorization: `Bearer ${token}` },
       });
       
@@ -98,7 +98,7 @@ const Profile = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        "http://localhost:8000/api/notification",
+        "https://sat-t2tn.onrender.com/api/notification",
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -119,7 +119,7 @@ const Profile = () => {
       const token = localStorage.getItem("token");
       
       const response = await axios.patch(
-        "http://localhost:8000/api/auth/update-profile",
+        "https://sat-t2tn.onrender.com/auth/update-profile",
         {
           name: editForm.name,
           phone: editForm.phone,
@@ -168,7 +168,7 @@ const Profile = () => {
       const token = localStorage.getItem("token");
       
       const response = await axios.patch(
-        "http://localhost:8000/api/auth/update-password",
+        "https://sat-t2tn.onrender.com/api/auth/update-password",
         {
           currentPassword: passwordForm.currentPassword,
           newPassword: passwordForm.newPassword,
@@ -196,7 +196,7 @@ const Profile = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.patch(
-        `http://localhost:8000/api/notification/${notificationId}/read`,
+        `https://sat-t2tn.onrender.com/api/notification/${notificationId}/read`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -212,7 +212,7 @@ const Profile = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.patch(
-        "http://localhost:8000/api/notification/read-all",
+        "https://sat-t2tn.onrender.com/api/notification/read-all",
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -228,7 +228,7 @@ const Profile = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.delete(
-        `http://localhost:8000/api/notification/${notificationId}`,
+        `https://sat-t2tn.onrender.com/api/notification/${notificationId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

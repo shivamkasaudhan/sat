@@ -55,9 +55,9 @@ const AdminDashboard = () => {
       if (dateFilter) params.append("date", dateFilter);
 
       const [ordersRes, statsRes, notifRes] = await Promise.all([
-        axios.get(`http://localhost:8000/api/order/admin/all?${params}`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get("http://localhost:8000/api/order/admin/stats", { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get("http://localhost:8000/api/notification?unreadOnly=true", { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`https://sat-t2tn.onrender.com/api/order/admin/all?${params}`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get("https://sat-t2tn.onrender.com/api/order/admin/stats", { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get("https://sat-t2tn.onrender.com/api/notification?unreadOnly=true", { headers: { Authorization: `Bearer ${token}` } }),
       ]);
 
       if (ordersRes.data.success) setOrders(ordersRes.data.orders);
@@ -75,7 +75,7 @@ const AdminDashboard = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get("http://localhost:8000/api/product");
+      const response = await axios.get("https://sat-t2tn.onrender.com/api/product");
       setProducts(response.data);
     } catch (err) {
       console.error("Fetch products error:", err);
@@ -84,7 +84,7 @@ const AdminDashboard = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get("http://localhost:8000/api/category");
+      const response = await axios.get("https://sat-t2tn.onrender.com/api/category");
       setCategories(response.data);
     } catch (err) {
       console.error("Fetch categories error:", err);
@@ -94,7 +94,7 @@ const AdminDashboard = () => {
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.patch(`http://localhost:8000/api/order/${orderId}/status`, 
+      const response = await axios.patch(`https://sat-t2tn.onrender.com/api/order/${orderId}/status`, 
         { status: newStatus }, { headers: { Authorization: `Bearer ${token}` } });
       if (response.data.success) fetchDashboardData();
     } catch (err) {
@@ -106,7 +106,7 @@ const AdminDashboard = () => {
   const markNotificationAsRead = async (notifId) => {
     try {
       const token = localStorage.getItem("token");
-      await axios.patch(`http://localhost:8000/api/notification/${notifId}/read`, {}, 
+      await axios.patch(`https://sat-t2tn.onrender.com/api/notification/${notifId}/read`, {}, 
         { headers: { Authorization: `Bearer ${token}` } });
       fetchDashboardData();
     } catch (err) {
@@ -159,7 +159,7 @@ const AdminDashboard = () => {
       formData.append("inStock", productForm.inStock);
       if (productForm.image) formData.append("image", productForm.image);
 
-      const url = editMode ? `http://localhost:8000/api/product/${currentItem._id}` : "http://localhost:8000/api/product/add";
+      const url = editMode ? `https://sat-t2tn.onrender.com/api/product/${currentItem._id}` : "https://sat-t2tn.onrender.com/api/product/add";
       const method = editMode ? "put" : "post";
       const response = await axios[method](url, formData, {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
@@ -180,7 +180,7 @@ const AdminDashboard = () => {
     if (!confirm("Are you sure you want to delete this product?")) return;
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:8000/api/product/${productId}`, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.delete(`https://sat-t2tn.onrender.com/api/product/${productId}`, { headers: { Authorization: `Bearer ${token}` } });
       alert("Product deleted successfully!");
       fetchProducts();
     } catch (err) {
@@ -219,7 +219,7 @@ const AdminDashboard = () => {
       formData.append("name", categoryForm.name);
       if (categoryForm.image) formData.append("image", categoryForm.image);
 
-      const url = editMode ? `http://localhost:8000/api/category/${currentItem._id}` : "http://localhost:8000/api/category/add";
+      const url = editMode ? `https://sat-t2tn.onrender.com/api/category/${currentItem._id}` : "https://sat-t2tn.onrender.com/api/category/add";
       const method = editMode ? "put" : "post";
       const response = await axios[method](url, formData, {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
@@ -240,7 +240,7 @@ const AdminDashboard = () => {
     if (!confirm("Are you sure you want to delete this category?")) return;
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:8000/api/category/${categoryId}`, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.delete(`https://sat-t2tn.onrender.com/api/category/${categoryId}`, { headers: { Authorization: `Bearer ${token}` } });
       alert("Category deleted successfully!");
       fetchCategories();
     } catch (err) {
@@ -274,7 +274,7 @@ const AdminDashboard = () => {
         return;
       }
 
-      const response = await axios.post("http://localhost:8000/admin/signup", {
+      const response = await axios.post("https://sat-t2tn.onrender.com/admin/signup", {
         name: adminForm.name, phone: adminForm.phone, password: adminForm.password,
         address: { firstLine: adminForm.addressLine1, secondLine: adminForm.addressLine2, pincode: adminForm.pincode },
       }, { headers: { Authorization: `Bearer ${token}` } });

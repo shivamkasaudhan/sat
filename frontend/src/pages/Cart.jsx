@@ -49,7 +49,7 @@ const Cart = () => {
   const loadUserAddress = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:8000/api/auth/me", {
+      const response = await axios.get("https://sat-t2tn.onrender.com/api/auth/me", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -214,7 +214,7 @@ const Cart = () => {
       const token = localStorage.getItem("token");
       
       const response = await axios.post(
-        "http://localhost:8000/api/order",
+        "https://sat-t2tn.onrender.com/api/order",
         {
           orderItems,
           scheduledDate,

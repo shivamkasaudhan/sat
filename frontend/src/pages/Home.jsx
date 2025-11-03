@@ -30,8 +30,8 @@ const Home = () => {
     try {
       setLoading(true);
       const [productRes, categoryRes] = await Promise.all([
-        axios.get("http://localhost:8000/api/product"),
-        axios.get("http://localhost:8000/api/category"),
+        axios.get("https://sat-t2tn.onrender.com/api/product"),
+        axios.get("https://sat-t2tn.onrender.com/api/category"),
       ]);
 
       // Filter products added in last 7 days

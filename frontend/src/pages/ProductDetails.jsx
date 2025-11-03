@@ -41,7 +41,7 @@ const ProductDetails = () => {
   const fetchProduct = async () => {
     try {
       setLoading(true);
-      const response = await axios.get("http://localhost:8000/api/product");
+      const response = await axios.get("https://sat-t2tn.onrender.com/api/product");
       const products = response.data;
       
       const currentProduct = products.find((p) => p._id === id);
