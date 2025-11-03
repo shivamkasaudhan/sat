@@ -76,14 +76,14 @@ const Home = () => {
     },
     {
       icon: Package,
-      title: "Fast Delivery",
-      description: "Quick and reliable order fulfillment",
+      title: "Reasonable Price",
+      description: "Best and Competive price",
       color: "from-green-500 to-emerald-500",
     },
     {
       icon: Award,
-      title: "Trusted Since 1995",
-      description: "30+ years of excellence and service",
+      title: "Trusted Since 1998",
+      description: "25+ years of excellence and service",
       color: "from-orange-500 to-red-500",
     },
   ];
@@ -126,7 +126,7 @@ const Home = () => {
           <div className="text-center space-y-6">
             <div className="inline-block">
               <span className="px-4 py-2 bg-purple-600/20 border border-purple-500/30 rounded-full text-sm font-medium text-purple-300 backdrop-blur-sm">
-                ✨ Premium Quality Since 1995
+                ✨ Premium Quality Since 1998
               </span>
             </div>
             <h1 className="text-4xl md:text-6xl font-bold">
@@ -152,27 +152,6 @@ const Home = () => {
               </button>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Stats Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {stats.map((stat, idx) => {
-            const Icon = stat.icon;
-            return (
-              <div
-                key={idx}
-                className="bg-slate-800/30 backdrop-blur-sm rounded-2xl p-6 border border-purple-500/20 text-center hover:border-purple-500/40 transition-all"
-              >
-                <Icon className="w-8 h-8 text-purple-400 mx-auto mb-3" />
-                <div className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-1">
-                  {stat.value}
-                </div>
-                <div className="text-sm text-gray-400">{stat.label}</div>
-              </div>
-            );
-          })}
         </div>
       </div>
 

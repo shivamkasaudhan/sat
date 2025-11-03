@@ -1,41 +1,47 @@
 import React, { useState } from "react";
 import { X, ChevronLeft, ChevronRight, Award, Users, TrendingUp, Heart } from "lucide-react";
+import bakary from './bakery.jpg';
+import bhaiya from './bhaiya.jpg'
+import product from './product.jpg'
+import trans from './trans.jpg'
+import com from './com.jpg'
+import grow from './grow.jpg'
 
 const Legacy = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // Gallery images (you can replace with actual images)
+  // Gallery images
   const galleryImages = [
     {
-      url: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800",
-      title: "Our Store in 1995",
-      description: "Where it all began"
+      url: `${bakary}`,
+      title: "The Bakery Era",
+      description: "Where our journey began in 1998"
     },
     {
-      url: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800",
-      title: "Product Range",
-      description: "Quality products since day one"
+      url: `${trans}`,
+      title: "The Transition",
+      description: "Opening the kirana shop in 2007"
     },
     {
-      url: "https://images.unsplash.com/photo-1528698827591-e19ccd7bc23d?w=800",
-      title: "Customer Service",
-      description: "Building relationships"
+      url: `${com}`,
+      title: "Community Hub",
+      description: "Serving our neighborhood"
     },
     {
-      url: "https://images.unsplash.com/photo-1556740758-90de374c12ad?w=800",
-      title: "Modern Facility",
-      description: "Expanded in 2010"
+      url: `${product}`,
+      title: "Quality Products",
+      description: "Trusted essentials for every home"
     },
     {
-      url: "https://images.unsplash.com/photo-1573164713988-8665fc963095?w=800",
-      title: "Team Spirit",
-      description: "Our dedicated team"
+      url: `${bhaiya}`,
+      title: "Family Business",
+      description: "Father and son working together"
     },
     {
-      url: "https://images.unsplash.com/photo-1556742111-a301076d9d18?w=800",
-      title: "Quality Check",
-      description: "Ensuring excellence"
+      url: `${grow}`,
+      title: "Growing Together",
+      description: "Building relationships that last"
     },
   ];
 
@@ -61,10 +67,10 @@ const Legacy = () => {
   };
 
   const milestones = [
-    { year: "1995", title: "Foundation", description: "Started as a small trading business in Pratapgarh" },
-    { year: "2005", title: "Expansion", description: "Expanded to serve 100+ regular customers" },
-    { year: "2015", title: "Modernization", description: "Upgraded facility and product range" },
-    { year: "2024", title: "Digital Era", description: "Launched online ordering and scheduling system" },
+    { year: "1998", title: "The Bakery", description: "Ashok Kumar Kasaudhan started with a bakery shop" },
+    { year: "2007", title: "New Beginning", description: "Transitioned from bakery to kirana shop - a pivotal moment" },
+    { year: "2015", title: "Steady Growth", description: "Established as a trusted name in the community" },
+    { year: "2021", title: "Next Generation", description: "Satyam Kasaudhan joins, bringing digital innovation" },
   ];
 
   const values = [
@@ -105,8 +111,9 @@ const Legacy = () => {
             </span>
           </h1>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-            Since 1995, Shri Ashok Traders has been serving the community with dedication, 
-            quality products, and unwavering commitment to customer satisfaction.
+            Since 1998, Shri Ashok Traders has been serving the community with dedication, 
+            quality products, and unwavering commitment to customer satisfaction. From a bakery 
+            to a thriving kirana shop, our journey is a story of resilience and growth.
           </p>
         </div>
 
@@ -118,25 +125,35 @@ const Legacy = () => {
             </h2>
             <div className="space-y-4 text-gray-300 leading-relaxed">
               <p>
-                What started as a modest trading business in Pratapgarh, Uttar Pradesh, has grown into 
-                a trusted name in the region. Founded in 1995 by Shri Ashok Ji, our journey has been 
-                marked by perseverance, dedication, and an unwavering commitment to quality.
+                In 1998, Ashok Kumar Kasaudhan started his entrepreneurial journey with a small bakery 
+                shop in Pratapgarh, Uttar Pradesh. For nine years, the aroma of fresh bread and the 
+                warmth of community connections defined his business. It was more than just baking—it 
+                was about serving the neighborhood with quality and care.
               </p>
               <p>
-                Over the past three decades, we've witnessed tremendous growth—not just in business, 
-                but in the relationships we've built with our customers. Each transaction has been an 
-                opportunity to earn trust, and every customer has become part of our extended family.
+                In 2007, Ashok Kumar made a bold decision that would shape the future of his family business. 
+                He closed the bakery and opened a kirana shop—a decision driven by vision and determination. 
+                This pivot marked the true beginning of Shri Ashok Traders as we know it today. From that 
+                moment, the business has never looked back, growing steadily day by day.
               </p>
               <p>
-                In 2024, we embraced digital transformation by launching our online ordering and 
-                scheduling system, making it easier than ever for our customers to access quality 
-                products at their convenience. Yet, despite technological advances, our core values 
-                remain unchanged: integrity, quality, and customer-first service.
+                The kirana shop became a cornerstone of the community, offering everything from daily 
+                essentials to trusted service. Through consistent quality, fair pricing, and genuine 
+                relationships, Ashok Kumar built a reputation that extended far beyond transactions. 
+                Each customer became part of the family, and the shop became a place of trust.
               </p>
               <p>
-                Today, Shri Ashok Traders stands as a testament to what can be achieved through hard work, 
-                honesty, and a genuine desire to serve the community. We're proud of our legacy and excited 
-                about the future as we continue to grow and serve you better.
+                Today, the legacy continues with the next generation. Satyam Kasaudhan, Ashok Kumar's son, 
+                now handles all operations of the business, bringing fresh energy and modern innovations. 
+                Yet the foundation remains strong—father and son work together, blending traditional values 
+                with contemporary approaches. Together, they continue to grow the business every single day, 
+                honoring the past while building the future.
+              </p>
+              <p>
+                Shri Ashok Traders is more than a kirana shop—it's a testament to resilience, family values, 
+                and the power of serving your community with integrity. Our journey from a bakery in 1998 to 
+                a thriving business in 2024 reflects decades of hard work, trust, and an unwavering commitment 
+                to excellence.
               </p>
             </div>
           </div>
@@ -265,9 +282,9 @@ const Legacy = () => {
         {/* Closing Message */}
         <div className="text-center bg-slate-800/30 backdrop-blur-sm rounded-3xl p-12 border border-purple-500/20">
           <p className="text-2xl font-semibold mb-4 italic text-gray-300">
-            "Legacy built on trust. Future powered by innovation."
+            "From bakery to kirana—a journey of resilience, trust, and family."
           </p>
-          <p className="text-gray-400">— Shri Ashok Traders Family</p>
+          <p className="text-gray-400">— Ashok Kumar & Satyam Kasaudhan</p>
         </div>
       </div>
     </div>

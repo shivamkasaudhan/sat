@@ -23,14 +23,14 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    // Validate scheduled date
-    const scheduled = new Date(scheduledDate);
-    if (scheduled < new Date()) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Scheduled date must be in the future' 
-      });
-    }
+    // // Validate scheduled date
+    // const scheduled = new Date(scheduledDate);
+    // if (scheduled < new Date()) {
+    //   return res.status(400).json({ 
+    //     success: false, 
+    //     message: 'Scheduled date must be in the future' 
+    //   });
+    // }
 
     // Calculate totals and validate products
     let totalAmount = 0;

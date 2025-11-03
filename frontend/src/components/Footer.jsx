@@ -29,12 +29,11 @@ const Footer = () => {
                 <h2 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                   Shri Ashok Traders
                 </h2>
-                <p className="text-xs text-purple-300">Premium Quality Since 1995</p>
+                <p className="text-xs text-purple-300">Premium Quality Since 1998</p>
               </div>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed max-w-md">
               Your trusted partner in quality trading and supply solutions. 
-              Delivering excellence with integrity and commitment to every order.
             </p>
             
             {/* Social or additional info could go here */}

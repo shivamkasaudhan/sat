@@ -14,7 +14,9 @@ import Legacy from "./pages/Legacy";
 import Login from "./pages/Login";
 import SignUp from "./pages/signup";
 import AdminDashboard from "./pages/AdminDashboard";
-
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import FAQ from "./pages/Faq";
+import TermsAndConditions from "./pages/TermsAndConditions";
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState("user");
@@ -136,7 +138,9 @@ function App() {
             </Layout>
           }
         />
-
+<Route path="/privacy" element={<Layout><PrivacyPolicy /></Layout>} />
+<Route path="/faqs" element={<Layout><FAQ /></Layout>} />
+<Route path="/terms" element={<Layout><TermsAndConditions /></Layout>} />
         {/* Auth Routes without Layout */}
         <Route
           path="/login"

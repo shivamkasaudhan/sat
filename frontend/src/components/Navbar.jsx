@@ -71,7 +71,7 @@ const Navbar = ({ isLoggedIn = false, userRole = "client", onLogout }) => {
                 <span className="text-lg sm:text-xl font-bold tracking-tight bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent group-hover:from-pink-400 group-hover:to-purple-400 transition-all duration-300 hidden sm:block">
                   Shri Ashok Traders
                 </span>
-                <span className="text-xs text-purple-300 hidden lg:block">Premium Quality Since 1995</span>
+                <span className="text-xs text-purple-300 hidden lg:block">Premium Quality Since 1998</span>
                 <span className="text-lg font-bold tracking-tight bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent block sm:hidden">
                   SAT
                 </span>
